@@ -5,6 +5,7 @@ import FileUpload from '@/components/upload/FileUpload';
 import WorkflowViewer from '@/components/workflow/WorkflowViewer';
 import XmlPreview from '@/components/export/XmlPreview';
 import { StandardsUpload, ComplianceReview, DiscrepancySummary } from '@/components/standards';
+import SystemConversion from '@/components/conversion/SystemConversion';
 import { ParsedDocument, ExtractedStep, Recipe } from '@/types/workflow';
 import {
   StandardsDocument,
@@ -15,6 +16,7 @@ import {
 } from '@/types/standards';
 import { createReviewSession, updateReviewSession, createComplianceSummary } from '@/lib/models/standards';
 
+type AppMode = 'document-upload' | 'system-conversion';
 type AppState = 'upload' | 'review' | 'standards-review' | 'standards-summary' | 'export';
 
 interface GeneratorInfo {
@@ -42,6 +44,9 @@ interface GeneratedResult {
 }
 
 export default function Home() {
+  // Mode selection state
+  const [mode, setMode] = useState<AppMode>('document-upload');
+
   const [state, setState] = useState<AppState>('upload');
   const [parsedDocument, setParsedDocument] = useState<ParsedDocument | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -357,6 +362,11 @@ export default function Home() {
     setComplianceSummary(null);
   };
 
+  const handleModeChange = (newMode: AppMode) => {
+    setMode(newMode);
+    handleReset();
+  };
+
   // Determine progress steps for header
   const getProgressSteps = () => {
     const baseSteps = ['Upload', 'Review'];
@@ -411,7 +421,9 @@ export default function Home() {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">HarmoniAI</h1>
-                <p className="text-xs text-gray-500">Paper to PAS-X Conversion</p>
+                <p className="text-xs text-gray-500">
+                  {mode === 'system-conversion' ? 'MES-to-MES Conversion' : 'Paper to MES Conversion'}
+                </p>
               </div>
             </div>
 
@@ -490,31 +502,77 @@ export default function Home() {
 
         {/* Upload State */}
         {state === 'upload' && (
-          <div className="max-w-2xl mx-auto">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Convert Batch Records to MES Format
-              </h2>
-              <p className="text-gray-600">
-                Upload your batch record document and we&apos;ll extract the workflow steps
-                and generate MES-compatible XML for your target system.
-              </p>
+          <div className="max-w-3xl mx-auto">
+            {/* Mode Toggle */}
+            <div className="flex justify-center mb-8">
+              <div className="inline-flex bg-gray-100 rounded-xl p-1">
+                <button
+                  onClick={() => handleModeChange('document-upload')}
+                  className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${
+                    mode === 'document-upload'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Document Upload
+                  </span>
+                </button>
+                <button
+                  onClick={() => handleModeChange('system-conversion')}
+                  className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${
+                    mode === 'system-conversion'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    System Conversion
+                  </span>
+                </button>
+              </div>
             </div>
-            <FileUpload onParsed={handleParsed} onError={handleError} />
 
-            <div className="mt-8 grid grid-cols-3 gap-4">
-              {[
-                { icon: '📊', title: 'Excel', desc: 'Gap assessments, flow charts' },
-                { icon: '📄', title: 'Word', desc: 'Procedure documents' },
-                { icon: '📑', title: 'PDF', desc: 'Scanned batch records' },
-              ].map((item) => (
-                <div key={item.title} className="p-4 bg-white rounded-xl border border-gray-200 text-center">
-                  <div className="text-2xl mb-2">{item.icon}</div>
-                  <p className="font-medium text-gray-900">{item.title}</p>
-                  <p className="text-xs text-gray-500">{item.desc}</p>
+            {/* Document Upload Mode */}
+            {mode === 'document-upload' && (
+              <>
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    Convert Batch Records to MES Format
+                  </h2>
+                  <p className="text-gray-600">
+                    Upload your batch record document and we&apos;ll extract the workflow steps
+                    and generate MES-compatible XML for your target system.
+                  </p>
                 </div>
-              ))}
-            </div>
+                <FileUpload onParsed={handleParsed} onError={handleError} />
+
+                <div className="mt-8 grid grid-cols-3 gap-4">
+                  {[
+                    { icon: '📊', title: 'Excel', desc: 'Gap assessments, flow charts' },
+                    { icon: '📄', title: 'Word', desc: 'Procedure documents' },
+                    { icon: '📑', title: 'PDF', desc: 'Scanned batch records' },
+                  ].map((item) => (
+                    <div key={item.title} className="p-4 bg-white rounded-xl border border-gray-200 text-center">
+                      <div className="text-2xl mb-2">{item.icon}</div>
+                      <p className="font-medium text-gray-900">{item.title}</p>
+                      <p className="text-xs text-gray-500">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* System Conversion Mode */}
+            {mode === 'system-conversion' && (
+              <SystemConversion />
+            )}
           </div>
         )}
 
