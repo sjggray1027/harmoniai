@@ -92,7 +92,7 @@ async function parsePdfStandards(
 ): Promise<{ rawContent: string; sections: StandardsSection[] }> {
   // Dynamic import to avoid issues with Next.js
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdfParse = require('pdf-parse');
+  const pdfParse = require('pdf-parse-new');
   const pdfData = await pdfParse(buffer);
   const rawContent = pdfData.text;
 

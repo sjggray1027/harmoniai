@@ -10,9 +10,10 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "@napi-rs/canvas": "^0.1.89",
     "mammoth": "^1.11.0",
     "next": "16.1.6",
-    "pdf-parse": "^2.4.5",
+    "pdf-parse-new": "^2.0.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "uuid": "^13.0.0",

@@ -8,6 +8,72 @@ export interface PdfParseOptions {
   maxPages?: number;
 }
 
+// Polyfill DOMMatrix for pdf-parse/pdfjs in Node.js environment
+if (typeof globalThis.DOMMatrix === 'undefined') {
+  // Minimal DOMMatrix polyfill for PDF text extraction (not rendering)
+  class DOMMatrixPolyfill {
+    a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+    m11 = 1; m12 = 0; m13 = 0; m14 = 0;
+    m21 = 0; m22 = 1; m23 = 0; m24 = 0;
+    m31 = 0; m32 = 0; m33 = 1; m34 = 0;
+    m41 = 0; m42 = 0; m43 = 0; m44 = 1;
+    is2D = true;
+    isIdentity = true;
+
+    constructor(init?: string | number[]) {
+      if (Array.isArray(init) && init.length >= 6) {
+        [this.a, this.b, this.c, this.d, this.e, this.f] = init;
+        this.m11 = this.a; this.m12 = this.b;
+        this.m21 = this.c; this.m22 = this.d;
+        this.m41 = this.e; this.m42 = this.f;
+      }
+    }
+
+    multiply() { return new DOMMatrixPolyfill(); }
+    translate() { return new DOMMatrixPolyfill(); }
+    scale() { return new DOMMatrixPolyfill(); }
+    rotate() { return new DOMMatrixPolyfill(); }
+    inverse() { return new DOMMatrixPolyfill(); }
+    transformPoint(point: { x: number; y: number }) { return point; }
+    toFloat32Array() { return new Float32Array(16); }
+    toFloat64Array() { return new Float64Array(16); }
+    static fromMatrix() { return new DOMMatrixPolyfill(); }
+    static fromFloat32Array() { return new DOMMatrixPolyfill(); }
+    static fromFloat64Array() { return new DOMMatrixPolyfill(); }
+  }
+  (globalThis as Record<string, unknown>).DOMMatrix = DOMMatrixPolyfill;
+}
+
+if (typeof globalThis.Path2D === 'undefined') {
+  class Path2DPolyfill {
+    addPath() {}
+    closePath() {}
+    moveTo() {}
+    lineTo() {}
+    bezierCurveTo() {}
+    quadraticCurveTo() {}
+    arc() {}
+    arcTo() {}
+    ellipse() {}
+    rect() {}
+  }
+  (globalThis as Record<string, unknown>).Path2D = Path2DPolyfill;
+}
+
+if (typeof globalThis.ImageData === 'undefined') {
+  class ImageDataPolyfill {
+    data: Uint8ClampedArray;
+    width: number;
+    height: number;
+    constructor(width: number, height: number) {
+      this.width = width;
+      this.height = height;
+      this.data = new Uint8ClampedArray(width * height * 4);
+    }
+  }
+  (globalThis as Record<string, unknown>).ImageData = ImageDataPolyfill;
+}
+
 export async function parsePdfFile(
   buffer: Buffer,
   fileName: string,
@@ -15,13 +81,13 @@ export async function parsePdfFile(
 ): Promise<ParsedDocument> {
   // Dynamic import to avoid issues with Next.js
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdfParse = require('pdf-parse');
+  const pdfParse = require('pdf-parse-new');
 
-  const data = await pdfParse(buffer, {
+  const result = await pdfParse(buffer, {
     max: options.maxPages || 0, // 0 = all pages
   });
 
-  const text = data.text;
+  const text = result.text;
   const extractedSteps = extractStepsFromPdf(text);
 
   return {
@@ -29,9 +95,9 @@ export async function parsePdfFile(
     fileType: 'pdf',
     extractedSteps,
     rawData: {
-      numPages: data.numpages,
+      numPages: result.numpages,
       textLength: text.length,
-      info: data.info,
+      info: result.info,
     },
     parseDate: new Date().toISOString(),
     confidence: calculateConfidence(extractedSteps),
