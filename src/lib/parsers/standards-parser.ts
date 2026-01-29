@@ -90,12 +90,24 @@ async function parsePdfStandards(
   buffer: Buffer,
   options: StandardsParseOptions
 ): Promise<{ rawContent: string; sections: StandardsSection[] }> {
-  // Dynamic import to avoid issues with Next.js
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdfParse = require('pdf-parse-new');
-  const pdfData = await pdfParse(buffer);
-  const rawContent = pdfData.text;
+  // Use dynamic import for pdfjs-dist legacy build
+  const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
 
+  const data = new Uint8Array(buffer);
+  const loadingTask = pdfjsLib.getDocument({ data, useSystemFonts: true });
+  const pdfDoc = await loadingTask.promise;
+
+  const textParts: string[] = [];
+  for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+    const page = await pdfDoc.getPage(pageNum);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items
+      .map((item) => ('str' in item ? item.str : ''))
+      .join(' ');
+    textParts.push(pageText);
+  }
+
+  const rawContent = textParts.join('\n\n');
   const sections = extractSections(rawContent, options.extractRequirements !== false);
 
   return { rawContent, sections };

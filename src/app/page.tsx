@@ -6,6 +6,7 @@ import WorkflowViewer from '@/components/workflow/WorkflowViewer';
 import XmlPreview from '@/components/export/XmlPreview';
 import { StandardsUpload, ComplianceReview, DiscrepancySummary } from '@/components/standards';
 import SystemConversion from '@/components/conversion/SystemConversion';
+import { EBREstimator } from '@/components/estimator';
 import { ParsedDocument, ExtractedStep, Recipe } from '@/types/workflow';
 import {
   StandardsDocument,
@@ -16,7 +17,7 @@ import {
 } from '@/types/standards';
 import { createReviewSession, updateReviewSession, createComplianceSummary } from '@/lib/models/standards';
 
-type AppMode = 'document-upload' | 'system-conversion';
+type AppMode = 'document-upload' | 'system-conversion' | 'ebr-estimator';
 type AppState = 'upload' | 'review' | 'standards-review' | 'standards-summary' | 'export';
 
 interface GeneratorInfo {
@@ -422,7 +423,7 @@ export default function Home() {
               <div>
                 <h1 className="text-xl font-bold text-gray-900">HarmoniAI</h1>
                 <p className="text-xs text-gray-500">
-                  {mode === 'system-conversion' ? 'MES-to-MES Conversion' : 'Paper to MES Conversion'}
+                  {mode === 'system-conversion' ? 'MES-to-MES Conversion' : mode === 'ebr-estimator' ? 'Workload Estimation' : 'Paper to MES Conversion'}
                 </p>
               </div>
             </div>
@@ -536,6 +537,21 @@ export default function Home() {
                     System Conversion
                   </span>
                 </button>
+                <button
+                  onClick={() => handleModeChange('ebr-estimator')}
+                  className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${
+                    mode === 'ebr-estimator'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    EBR Estimator
+                  </span>
+                </button>
               </div>
             </div>
 
@@ -572,6 +588,11 @@ export default function Home() {
             {/* System Conversion Mode */}
             {mode === 'system-conversion' && (
               <SystemConversion />
+            )}
+
+            {/* EBR Estimator Mode */}
+            {mode === 'ebr-estimator' && (
+              <EBREstimator />
             )}
           </div>
         )}

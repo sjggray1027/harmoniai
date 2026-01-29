@@ -1,77 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import { ParsedDocument, ExtractedStep } from '@/types/workflow';
 
-// Note: pdf-parse has issues with Next.js edge runtime
-// This parser works in Node.js API routes only
-
 export interface PdfParseOptions {
   maxPages?: number;
-}
-
-// Polyfill DOMMatrix for pdf-parse/pdfjs in Node.js environment
-if (typeof globalThis.DOMMatrix === 'undefined') {
-  // Minimal DOMMatrix polyfill for PDF text extraction (not rendering)
-  class DOMMatrixPolyfill {
-    a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
-    m11 = 1; m12 = 0; m13 = 0; m14 = 0;
-    m21 = 0; m22 = 1; m23 = 0; m24 = 0;
-    m31 = 0; m32 = 0; m33 = 1; m34 = 0;
-    m41 = 0; m42 = 0; m43 = 0; m44 = 1;
-    is2D = true;
-    isIdentity = true;
-
-    constructor(init?: string | number[]) {
-      if (Array.isArray(init) && init.length >= 6) {
-        [this.a, this.b, this.c, this.d, this.e, this.f] = init;
-        this.m11 = this.a; this.m12 = this.b;
-        this.m21 = this.c; this.m22 = this.d;
-        this.m41 = this.e; this.m42 = this.f;
-      }
-    }
-
-    multiply() { return new DOMMatrixPolyfill(); }
-    translate() { return new DOMMatrixPolyfill(); }
-    scale() { return new DOMMatrixPolyfill(); }
-    rotate() { return new DOMMatrixPolyfill(); }
-    inverse() { return new DOMMatrixPolyfill(); }
-    transformPoint(point: { x: number; y: number }) { return point; }
-    toFloat32Array() { return new Float32Array(16); }
-    toFloat64Array() { return new Float64Array(16); }
-    static fromMatrix() { return new DOMMatrixPolyfill(); }
-    static fromFloat32Array() { return new DOMMatrixPolyfill(); }
-    static fromFloat64Array() { return new DOMMatrixPolyfill(); }
-  }
-  (globalThis as Record<string, unknown>).DOMMatrix = DOMMatrixPolyfill;
-}
-
-if (typeof globalThis.Path2D === 'undefined') {
-  class Path2DPolyfill {
-    addPath() {}
-    closePath() {}
-    moveTo() {}
-    lineTo() {}
-    bezierCurveTo() {}
-    quadraticCurveTo() {}
-    arc() {}
-    arcTo() {}
-    ellipse() {}
-    rect() {}
-  }
-  (globalThis as Record<string, unknown>).Path2D = Path2DPolyfill;
-}
-
-if (typeof globalThis.ImageData === 'undefined') {
-  class ImageDataPolyfill {
-    data: Uint8ClampedArray;
-    width: number;
-    height: number;
-    constructor(width: number, height: number) {
-      this.width = width;
-      this.height = height;
-      this.data = new Uint8ClampedArray(width * height * 4);
-    }
-  }
-  (globalThis as Record<string, unknown>).ImageData = ImageDataPolyfill;
 }
 
 export async function parsePdfFile(
@@ -79,15 +10,31 @@ export async function parsePdfFile(
   fileName: string,
   options: PdfParseOptions = {}
 ): Promise<ParsedDocument> {
-  // Dynamic import to avoid issues with Next.js
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdfParse = require('pdf-parse-new');
+  // Use dynamic import for pdfjs-dist legacy build (works in Node.js)
+  const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
 
-  const result = await pdfParse(buffer, {
-    max: options.maxPages || 0, // 0 = all pages
-  });
+  // Load the PDF document
+  const data = new Uint8Array(buffer);
+  const loadingTask = pdfjsLib.getDocument({ data, useSystemFonts: true });
+  const pdfDoc = await loadingTask.promise;
 
-  const text = result.text;
+  const numPages = pdfDoc.numPages;
+  const maxPages = options.maxPages || numPages;
+  const pagesToParse = Math.min(numPages, maxPages);
+
+  // Extract text from all pages
+  const textParts: string[] = [];
+
+  for (let pageNum = 1; pageNum <= pagesToParse; pageNum++) {
+    const page = await pdfDoc.getPage(pageNum);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items
+      .map((item) => ('str' in item ? item.str : ''))
+      .join(' ');
+    textParts.push(pageText);
+  }
+
+  const text = textParts.join('\n\n');
   const extractedSteps = extractStepsFromPdf(text);
 
   return {
@@ -95,9 +42,8 @@ export async function parsePdfFile(
     fileType: 'pdf',
     extractedSteps,
     rawData: {
-      numPages: result.numpages,
+      numPages,
       textLength: text.length,
-      info: result.info,
     },
     parseDate: new Date().toISOString(),
     confidence: calculateConfidence(extractedSteps),
