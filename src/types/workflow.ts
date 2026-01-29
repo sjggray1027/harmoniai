@@ -118,7 +118,7 @@ export interface CleaningManagement {
 // Parsed document result
 export interface ParsedDocument {
   fileName: string;
-  fileType: 'excel' | 'word' | 'pdf';
+  fileType: 'excel' | 'word' | 'pdf' | 'xml';
   extractedSteps: ExtractedStep[];
   rawData?: unknown;
   parseDate: string;

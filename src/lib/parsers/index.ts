@@ -2,8 +2,9 @@ import { ParsedDocument } from '@/types/workflow';
 import { parseExcelFile, ExcelParseOptions } from './excel-parser';
 import { parseWordFile, WordParseOptions } from './word-parser';
 import { parsePdfFile, PdfParseOptions } from './pdf-parser';
+import { parseXmlFile, XmlParseOptions } from './xml-parser';
 
-export type ParseOptions = ExcelParseOptions | WordParseOptions | PdfParseOptions;
+export type ParseOptions = ExcelParseOptions | WordParseOptions | PdfParseOptions | XmlParseOptions;
 
 export async function parseDocument(
   buffer: Buffer,
@@ -36,10 +37,19 @@ export async function parseDocument(
     return parsePdfFile(buffer, fileName, options as PdfParseOptions);
   }
 
+  if (
+    mimeType === 'application/xml' ||
+    mimeType === 'text/xml' ||
+    fileExtension === 'xml'
+  ) {
+    return parseXmlFile(buffer, fileName, options as XmlParseOptions);
+  }
+
   throw new Error(`Unsupported file type: ${mimeType} (${fileExtension})`);
 }
 
 export { parseExcelFile } from './excel-parser';
 export { parseWordFile } from './word-parser';
 export { parsePdfFile } from './pdf-parser';
+export { parseXmlFile } from './xml-parser';
 export { parseStandardsDocument } from './standards-parser';

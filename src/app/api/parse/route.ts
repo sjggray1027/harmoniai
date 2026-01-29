@@ -22,14 +22,16 @@ export async function POST(request: NextRequest) {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // docx
       'application/msword', // doc
       'application/pdf',
+      'application/xml',
+      'text/xml',
     ];
 
-    const allowedExtensions = ['xlsx', 'xls', 'docx', 'doc', 'pdf'];
+    const allowedExtensions = ['xlsx', 'xls', 'docx', 'doc', 'pdf', 'xml'];
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
 
     if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension || '')) {
       return NextResponse.json(
-        { error: `Unsupported file type: ${file.type}. Allowed: Excel, Word, PDF` },
+        { error: `Unsupported file type: ${file.type}. Allowed: Excel, Word, PDF, XML` },
         { status: 400 }
       );
     }

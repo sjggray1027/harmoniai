@@ -85,7 +85,7 @@ export default function FileUpload({ onParsed, onError }: FileUploadProps) {
     >
       <input
         type="file"
-        accept=".xlsx,.xls,.docx,.doc,.pdf"
+        accept=".xlsx,.xls,.docx,.doc,.pdf,.xml"
         onChange={handleInputChange}
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         disabled={isLoading}
@@ -115,10 +115,11 @@ export default function FileUpload({ onParsed, onError }: FileUploadProps) {
             <p className="text-sm text-gray-500 mb-4">
               or click to browse
             </p>
-            <div className="flex justify-center gap-2 text-xs text-gray-400">
+            <div className="flex justify-center gap-2 text-xs text-gray-400 flex-wrap">
               <span className="px-2 py-1 bg-gray-200 rounded">Excel (.xlsx, .xls)</span>
               <span className="px-2 py-1 bg-gray-200 rounded">Word (.docx, .doc)</span>
               <span className="px-2 py-1 bg-gray-200 rounded">PDF (.pdf)</span>
+              <span className="px-2 py-1 bg-gray-200 rounded">XML (.xml)</span>
             </div>
           </>
         )}

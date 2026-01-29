@@ -560,7 +560,7 @@ export default function Home() {
               <>
                 <div className="text-center mb-8">
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                    Convert Batch Records to MES Format
+                    Convert Batch Records to Any Format
                   </h2>
                   <p className="text-gray-600">
                     Upload your batch record document and we&apos;ll extract the workflow steps
@@ -569,11 +569,12 @@ export default function Home() {
                 </div>
                 <FileUpload onParsed={handleParsed} onError={handleError} />
 
-                <div className="mt-8 grid grid-cols-3 gap-4">
+                <div className="mt-8 grid grid-cols-4 gap-4">
                   {[
                     { icon: '📊', title: 'Excel', desc: 'Gap assessments, flow charts' },
                     { icon: '📄', title: 'Word', desc: 'Procedure documents' },
                     { icon: '📑', title: 'PDF', desc: 'Scanned batch records' },
+                    { icon: '📋', title: 'XML', desc: 'MES recipe formats' },
                   ].map((item) => (
                     <div key={item.title} className="p-4 bg-white rounded-xl border border-gray-200 text-center">
                       <div className="text-2xl mb-2">{item.icon}</div>
