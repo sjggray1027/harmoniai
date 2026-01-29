@@ -90,24 +90,14 @@ async function parsePdfStandards(
   buffer: Buffer,
   options: StandardsParseOptions
 ): Promise<{ rawContent: string; sections: StandardsSection[] }> {
-  // Use dynamic import for pdfjs-dist legacy build
-  const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  // Use unpdf for reliable Node.js PDF parsing
+  const { extractText } = await import('unpdf');
 
-  const data = new Uint8Array(buffer);
-  const loadingTask = pdfjsLib.getDocument({ data, useSystemFonts: true });
-  const pdfDoc = await loadingTask.promise;
+  const { text } = await extractText(new Uint8Array(buffer), {
+    mergePages: true,
+  });
 
-  const textParts: string[] = [];
-  for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-    const page = await pdfDoc.getPage(pageNum);
-    const textContent = await page.getTextContent();
-    const pageText = textContent.items
-      .map((item) => ('str' in item ? item.str : ''))
-      .join(' ');
-    textParts.push(pageText);
-  }
-
-  const rawContent = textParts.join('\n\n');
+  const rawContent = Array.isArray(text) ? text.join('\n\n') : text;
   const sections = extractSections(rawContent, options.extractRequirements !== false);
 
   return { rawContent, sections };

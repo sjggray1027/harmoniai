@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { ParsedDocument, ExtractedStep } from '@/types/workflow';
+import { extractText, getDocumentProxy } from 'unpdf';
 
 export interface PdfParseOptions {
   maxPages?: number;
@@ -10,40 +11,32 @@ export async function parsePdfFile(
   fileName: string,
   options: PdfParseOptions = {}
 ): Promise<ParsedDocument> {
-  // Use dynamic import for pdfjs-dist legacy build (works in Node.js)
-  const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
-
-  // Load the PDF document
-  const data = new Uint8Array(buffer);
-  const loadingTask = pdfjsLib.getDocument({ data, useSystemFonts: true });
-  const pdfDoc = await loadingTask.promise;
-
-  const numPages = pdfDoc.numPages;
+  // Use unpdf for reliable Node.js PDF parsing
+  const pdf = await getDocumentProxy(new Uint8Array(buffer));
+  const numPages = pdf.numPages;
   const maxPages = options.maxPages || numPages;
   const pagesToParse = Math.min(numPages, maxPages);
 
   // Extract text from all pages
-  const textParts: string[] = [];
+  const { text, totalPages } = await extractText(new Uint8Array(buffer), {
+    mergePages: false,
+  });
 
-  for (let pageNum = 1; pageNum <= pagesToParse; pageNum++) {
-    const page = await pdfDoc.getPage(pageNum);
-    const textContent = await page.getTextContent();
-    const pageText = textContent.items
-      .map((item) => ('str' in item ? item.str : ''))
-      .join(' ');
-    textParts.push(pageText);
-  }
+  // Combine text from pages (up to maxPages)
+  const textParts = Array.isArray(text)
+    ? text.slice(0, pagesToParse)
+    : [text];
+  const fullText = textParts.join('\n\n');
 
-  const text = textParts.join('\n\n');
-  const extractedSteps = extractStepsFromPdf(text);
+  const extractedSteps = extractStepsFromPdf(fullText);
 
   return {
     fileName,
     fileType: 'pdf',
     extractedSteps,
     rawData: {
-      numPages,
-      textLength: text.length,
+      numPages: totalPages,
+      textLength: fullText.length,
     },
     parseDate: new Date().toISOString(),
     confidence: calculateConfidence(extractedSteps),
